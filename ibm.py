@@ -1,12 +1,15 @@
 import configparser
+import os
 import qiskit
 
 config = configparser.ConfigParser()
 
 
 def get_ibm_token():
-    config.read('ibm.conf')
-    return config['IBM']['token']
+    this_folder = os.path.dirname(os.path.abspath(__file__))
+    conf_file = os.path.join(this_folder, 'ibm.conf')
+    config.read(conf_file)
+    return config.get('ibm', 'token')
 
 
 def register_token():
