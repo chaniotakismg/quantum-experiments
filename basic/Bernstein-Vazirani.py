@@ -1,94 +1,36 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[2]:
-
-
 from qiskit import *
-get_ipython().run_line_magic('matplotlib', 'inline')
-from qiskit.tools.visualization import plot_histogram
+from qiskit.tools import job_monitor
 
+if __name__ == '__main__':
 
-# In[3]:
+    # Configuration
+    secret_number = '10110111'
+    secret_number_length = len(secret_number)
+    qubit_series = range(secret_number_length)
 
+    # Circuit setup
+    circuit = QuantumCircuit(secret_number_length + 1, secret_number_length)
+    circuit.h(qubit_series)
+    circuit.x(secret_number_length)
+    circuit.h(secret_number_length)
+    circuit.barrier()
+    # Check positions of 1 and apply a CNOT(CX) gate
+    for index, check in enumerate(reversed(secret_number)):
+        if check == '1':
+            circuit.cx(index, secret_number_length)
+    circuit.barrier()
+    circuit.h(qubit_series)
+    circuit.barrier()
+    circuit.measure(qubit_series, qubit_series)
+    circuit.draw(output='mpl')
 
-secretnumber = '101001'
-
-
-# In[16]:
-
-
-circuit = QuantumCircuit(6+1, 6)
-
-circuit.h([0,1,2,3,4,5])
-circuit.x(6)
-circuit.h(6)
-
-circuit.barrier()
-
-circuit.cx(5, 6)
-circuit.cx(3, 6)
-circuit.cx(0, 6)
-
-circuit.barrier()
-circuit.h([0,1,2,3,4,5])
-circuit.barrier()
-circuit.measure([0,1,2,3,4,5], [0,1,2,3,4,5])
-
-
-# In[17]:
-
-
-circuit.draw(output='mpl')
-
-
-# In[19]:
-
-
-simulator = Aer.get_backend('qasm_simulator')
-result = execute(circuit, backend=simulator, shots=1).result()
-counts = result.get_counts()
-print(counts)
-
-
-# In[32]:
-
-
-circuit_n = QuantumCircuit(len(secretnumber)+1, len(secretnumber))
-
-circuit_n.h(range(len(secretnumber)))
-circuit_n.x(len(secretnumber))
-circuit_n.h(len(secretnumber))
-
-circuit_n.barrier()
-
-for ii, yesno in enumerate(reversed(secretnumber)):
-    if yesno == '1':
-        circuit_n.cx(ii, len(secretnumber))
-
-circuit_n.barrier()
-circuit_n.h(range(len(secretnumber)))
-circuit_n.barrier()
-circuit_n.measure(range(len(secretnumber)), range(len(secretnumber)))
-
-
-# In[33]:
-
-
-circuit.draw(output='mpl')
-
-
-# In[31]:
-
-
-simulator = Aer.get_backend('qasm_simulator')
-result = execute(circuit, backend=simulator, shots=1).result()
-counts = result.get_counts()
-print(counts)
-
-
-# In[ ]:
-
-
-
-
+    # Measurement
+    IBMQ.load_account()
+    provider = IBMQ.get_provider(hub='ibm-q', group='open', project='main')
+    device = provider.get_backend('ibmq_16_melbourne')  # We need many qubits
+    job = execute(circuit, backend=device, shots=1)
+    print("Job ID in ibmq_16_melbourne:", job.job_id())
+    job_monitor(job)
+    result = job.result()
+    counts = result.get_counts()
+    print("Guess and in iterations:", counts)
